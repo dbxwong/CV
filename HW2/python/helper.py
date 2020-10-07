@@ -4,6 +4,9 @@ import scipy.io as sio
 from matplotlib import pyplot as plt
 import skimage.feature
 
+## COLLABORATORS: CORINNE ALINI, HUSAM WADI, DANIEL BRONSTEIN, LIU JINKUN, JONATHAN SCHWARTZ
+
+
 PATCHWIDTH = 9
 
 def briefMatch(desc1,desc2,ratio):

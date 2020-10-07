@@ -3,52 +3,42 @@ import numpy as np
 import cv2
 from opts import get_opts
 from planarH import compositeH
+import matplotlib.pyplot as plt
+
+## COLLABORATORS: CORINNE ALINI, HUSAM WADI, DANIEL BRONSTEIN, LIU JINKUN, JONATHAN SCHWARTZ, AARUSHI WADHWA
 
 opts = get_opts()
 
 #load images
-img1 = cv2.imread('../data/pano_left.jpg')
-img2 = cv2.imread('../data/pano_right.jpg') 
-img_left = cv2.cvtColor(img1,cv2.COLOR_BGR2GRAY)
-img_right = cv2.cvtColor(img2,cv2.COLOR_BGR2GRAY)
+#imgA = cv2.imread('../data/pano_left.jpg') #- default picture for debugging
+#imgB = cv2.imread('../data/pano_right.jpg') 
+imgA = cv2.imread('../data/pano_L.jpg') #test image from own camera
+imgB = cv2.imread('../data/pano_R.jpg')
 
-#reference: https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_feature2d/py_orb/py_orb.html
-# initiate ORB star detector and find keypoints
-orb = cv2.ORB_create()
-keypts1, des1 = orb.detectAndCompute(img_left,None)
-keypts2, des2 = orb.detectAndCompute(img_right,None)
+img_left = cv2.cvtColor(imgA,cv2.COLOR_BGR2GRAY)
+img_right = cv2.cvtColor(imgB,cv2.COLOR_BGR2GRAY)
 
-# Initiate SIFT detector - alternative
-#sift = cv2.SIFT()
+# find the keypoints and descriptors with ORB - alternative to SIFT
+orb = cv2.ORB_create(nfeatures= 5000) #ablation study of top# of matches doesnt yield much visual difference between 1000-5000
+locs1, des1 = orb.detectAndCompute(img_left,None)
+locs2, des2 = orb.detectAndCompute(img_right,None)
 
-# find the keypoints and descriptors with SIFT - alternative
-#kp1, des1 = sift.detectAndCompute(img1,None)
-#kp2, des2 = sift.detectAndCompute(img2,None)
+# match features - https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_feature2d/py_matcher/py_matcher.html
+bfmatch = cv2.BFMatcher(cv2.NORM_HAMMING,crossCheck=True)
+matches = bfmatch.match(des1,des2)
+sort_matches = sorted(matches, key=lambda x:x.distance)
 
-
-# create BFMatcher object - reference: https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_feature2d/py_matcher/py_matcher.html
-bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-
-# match descriptors
-matches = bf.knnMatch(des1,des2,k=1)
-
-good = []
-for m,n in matches:
-    if m.distance < 0.03*n.distance:
-        good.append(m)
-
-min_num_matches = 10
-if len(good)>min_num_matches:
-    matched_locs1 = np.float32([ kp1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
-    matched_locs2 = np.float32([ kp2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
-
-    # compute homography
-    H1to2, mask = cv2.findHomography(matched_locs1, matched_locs2, cv2.RANSAC, ransacReprojThreshold=2.0)
+matched_locs1 = np.array([locs1[match.queryIdx].pt for match in sort_matches[:700]])
+matched_locs2 = np.array([locs2[match.trainIdx].pt for match in sort_matches[:700]]) #ablation study of top# of matches doesnt yield much visual difference between 300-700
     
-    # sitch composite impage
-    composite_img = compositeH(H1to2, img1, img2)
-    plt.imshow(composite_img)
-    plt.show()
+ # compute homography - https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_feature2d/py_feature_homography/py_feature_homography.html 
+H, mask = cv2.findHomography(matched_locs1, matched_locs2, cv2.RANSAC,5.0)
 
-else:
-    print('error: not enough matches between both images, please try another pair')
+# compose composite image 
+composite_pano = compositeH(H, img_left,img_right)
+composite_pano = cv2.cvtColor(composite_pano,cv2.COLOR_GRAY2RGB)
+
+plt.imshow(composite_pano)
+plt.show()
+
+
