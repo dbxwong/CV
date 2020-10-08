@@ -119,32 +119,30 @@ def computeH_ransac(locs1, locs2, opts):
 
 	for iters in range (max_iters):
 		idx = np.random.choice(range(locs2.shape[0]),4)
-
-		for i in range(idx):
-			sampled_locs1 = locs1[i] # sampled 4 points from locs1
-			sampled_locs2 = locs2[i] # sampled 4 points from locs1
-			sampled_H = computeH_norm(sampled_locs1,sampled_locs2) #compute homography of 4 sampled points 
+		sampled_locs1 = np.array([locs1[i] for i in idx])
+		sampled_locs2 = np.array([locs2[i] for i in idx]) 
+		sampled_H = computeH_norm(sampled_locs1,sampled_locs2) #compute homography of 4 sampled points 
 
 			#check homography of sampled points against x2
-			x2_homo = np.append(np.transpose(locs2), np.ones((locs2.shape[0],1)), axis=0)
+		x2_homo = np.append(np.transpose(locs2), np.ones((locs2.shape[0],1)), axis=0)
 
-			homography_check = np.matmul(sampled_H,x2_homo) 
-
+		for j in range (x2_homo.shape[0]):
+			homography_check = np.array([np.matmul(sampled_H,x2_homo[j])]) 
 			distance = np.linalg.norm(locs1 - homography_check,axis=0) #axis=0 or 1
 			squared_dist = distance[0,i]**2 + distance[1,i]**2
 			print(squared_dist)
 
 			# count inliers based on inlier tolerance
-			inliers_count = 0
-			max_inlier_count = 0
+		inliers_count = 0
+		max_inlier_count = 0
 
-			if squared_dist < inlier_tol**2:
-				inlier_count +=1
+		if squared_dist < inlier_tol**2:
+			inlier_count +=1
 
-			if inliers_count > max_inlier_count:
-				bestH2to1 = sampled_H # save sampledH as best H
-				max_inlier_count = inliers_count # save new inlier count as max inlier count
-				inliers = max_inlier_count # to return inliers as HW question requires 
+		if inliers_count > max_inlier_count:
+			bestH2to1 = sampled_H # save sampledH as best H
+			max_inlier_count = inliers_count # save new inlier count as max inlier count
+			inliers = max_inlier_count # to return inliers as HW question requires 
 
 	return bestH2to1, inliers
 

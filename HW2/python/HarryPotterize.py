@@ -21,10 +21,14 @@ hp_cover_resized = cv2.resize(hp_cover,(cv_cover.shape[1],cv_cover.shape[0])) #r
 # compute homography of cv_cover and cv_desk automatically using MatchPics and computeH_ransac
 matches, locs1, locs2 = matchPics(cv_desk, cv_cover, opts)
 
+# swap coordinates rows,col --> x,y
+locs1[:,[0,1]] = locs1[:,[1,0]]
+locs2[:,[0,1]] = locs2[:,[1,0]]
+
 matched_locs1 = np.array([locs1[i] for i in matches[:0]])
 matched_locs2 = np.array([locs2[i] for i in matches[:1]]) 
 bestH2to1, inliers = computeH_ransac(matched_locs1, matched_locs2, opts)
-#H, mask = cv2.findHomography(matched_locs1, matched_locs2, cv2.RANSAC,5.0) ## debugging to test the rest of non planarH code
+# H, mask = cv2.findHomography(matched_locs1, matched_locs2, cv2.RANSAC,5.0) ## debugging to test the rest of non planarH code
 
 compositeImg = compositeH(bestH2to1, hp_cover_resized, cv_desk)
 plt.imshow(compositeImg)
